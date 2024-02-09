@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example: Calculation of pi &mdash; MPI4Py on ADA 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=f2a433a1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Barrier" href="06barrier.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MPI4Py on ADA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01hello.html">Hello world</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02p2p.html">Point to point communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03broadcast.html">Broadcast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04scatter.html">Scatter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05gather.html">Gather</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06barrier.html">Barrier</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example: Calculation of pi</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MPI4Py on ADA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Example: Calculation of pi</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/07picalc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-calculation-of-pi">
+<h1>Example: Calculation of pi<a class="headerlink" href="#example-calculation-of-pi" title="Link to this heading"></a></h1>
+<p>So far only simple examples were shown to introduce few of the basic concepts. In this example, a real world example is shown on how MPI parallelism can help speed up the code.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+<span class="n">comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+<span class="n">rank</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
+<span class="n">nprocs</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
+
+<span class="c1"># number of integration steps</span>
+<span class="n">nsteps</span> <span class="o">=</span> <span class="mi">10000000</span>
+<span class="c1"># step size</span>
+<span class="n">dx</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">nsteps</span>
+
+<span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="c1"># determine the size of each sub-task</span>
+    <span class="n">ave</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">nprocs</span><span class="p">)</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="p">[</span><span class="n">ave</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="n">res</span> <span class="k">else</span> <span class="n">ave</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nprocs</span><span class="p">)]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+    <span class="c1"># determine the starting and ending indices of each sub-task</span>
+    <span class="n">starts</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">[:</span><span class="n">p</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nprocs</span><span class="p">)]</span>
+    <span class="n">ends</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">[:</span><span class="n">p</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nprocs</span><span class="p">)]</span>
+
+    <span class="c1"># save the starting and ending indices in data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[(</span><span class="n">starts</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">ends</span><span class="p">[</span><span class="n">p</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nprocs</span><span class="p">)]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># compute partial contribution to pi on each process</span>
+<span class="n">partial_pi</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span>
+    <span class="n">partial_pi</span> <span class="o">+=</span> <span class="mf">4.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">partial_pi</span> <span class="o">*=</span> <span class="n">dx</span>
+
+<span class="n">partial_pi</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">partial_pi</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pi computed in </span><span class="si">{:.3f}</span><span class="s1"> sec&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;error is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">partial_pi</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>In the above code, <code class="docutils literal notranslate"><span class="pre">t0</span></code> is set to calculate time, <code class="docutils literal notranslate"><span class="pre">comm</span></code> is set for the communicator, <code class="docutils literal notranslate"><span class="pre">rank</span></code> is set to be the rank in the communicator and <code class="docutils literal notranslate"><span class="pre">size</span></code> is set to be the size of communicator.</p>
+<p>Integration steps assigned are 10,000,000 and correspondingly the step size <code class="docutils literal notranslate"><span class="pre">dx</span></code>.</p>
+<p>Now, if the rank is the first rank in MPI process, then <code class="docutils literal notranslate"><span class="pre">ave</span></code> and <code class="docutils literal notranslate"><span class="pre">res</span></code> are set using divmod, which takes two numbers as arguments and returns their quotient and remainder in a tuple.</p>
+<p>Next a list <code class="docutils literal notranslate"><span class="pre">counts</span></code> is created which iterates over processes <code class="docutils literal notranslate"><span class="pre">p</span></code> in range <code class="docutils literal notranslate"><span class="pre">nprocs</span></code>.</p>
+<p>For each value of p, the value in counts is assigned. This value is essentially the number of domains that the calculation occurs.</p>
+<p>On running the job, on say, 4 processors (<code class="docutils literal notranslate"><span class="pre">--ntasks-per-node</span></code> flag), the counts can be seen as,</p>
+<p><code class="docutils literal notranslate"><span class="pre">[2500000,</span> <span class="pre">2500000,</span> <span class="pre">2500000,</span> <span class="pre">2500000]</span></code></p>
+<p>The next step is to scatter the data from rank 0 to other ranks.</p>
+<p><code class="docutils literal notranslate"><span class="pre">data</span> <span class="pre">=</span> <span class="pre">comm.scatter(data,</span> <span class="pre">root=0)</span></code></p>
+<p>a <code class="docutils literal notranslate"><span class="pre">partial_pi</span></code> variable is then calculated using the discrete steps as follows</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mf">0.5</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>
+    <span class="n">partial_pi</span> <span class="o">+=</span> <span class="mf">4.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+<span class="n">partial_pi</span> <span class="o">*=</span> <span class="n">dx</span>
+
+<span class="n">partial_pi</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">partial_pi</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>At the start and end of the data range on each rank is printed. For values (i) in the range of data, x is calculated to be <code class="docutils literal notranslate"><span class="pre">i+0.5</span></code> multiplied by dx, which was computed earlier.</p>
+<p>partial_pi is then increased each step.
+Finally partial_pi after the loop completes is multiplied by dx and then the communicators gathers all of the values of partial_pi back to rank 0, which is the root process.</p>
+<p>The final bit, calculates the error and time to perform the operation.</p>
+<img alt="_images/picalc-time.png" src="_images/picalc-time.png" />
+<p>The image above shows the time to calculate this value with the help of <code class="docutils literal notranslate"><span class="pre">[4,8,16,32]</span></code> processors. As can be seen, that the best result is observed from scaling 4 to 8 processors. And then on, the returns diminish.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="06barrier.html" class="btn btn-neutral float-left" title="Barrier" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Atul Singh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
